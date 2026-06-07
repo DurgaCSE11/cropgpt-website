@@ -15,14 +15,14 @@ serve(async (req) => {
   try {
     const { prompt } = await req.json()
 
-    // 1. Gather all configured cropgpt key variables
-    const apiKeys = [
-      Deno.env.get('cropgpt1'),
-      Deno.env.get('cropgpt2'),
-      Deno.env.get('cropgpt3'),
-      Deno.env.get('cropgpt4'),
-      Deno.env.get('cropgpt5')
-    ].filter(Boolean)
+    // Dynamically load keys cropgpt1, cropgpt2, cropgpt3 ... up to cropgpt20
+    const apiKeys = [];
+    for (let i = 1; i <= 20; i++) {
+      const key = Deno.env.get(`cropgpt${i}`);
+      if (key) {
+        apiKeys.push(key);
+      }
+    }
 
     if (apiKeys.length === 0) {
       throw new Error("No Gemini API Keys (cropgpt1, cropgpt2, etc.) set in Supabase Secrets.")
