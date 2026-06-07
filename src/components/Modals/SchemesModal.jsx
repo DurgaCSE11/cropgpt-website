@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { askGemini } from '../../geminiService';
 
 const staticSchemes = [
   { title: "KALIA (Krushak Assistance for Livelihood and Income Augmentation)", description: "Provides financial support to small and marginal farmers for cultivation, livelihood, and insurance." },
@@ -21,19 +21,18 @@ export default function SchemesModal({ isOpen, onClose }) {
   const loadSchemes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('schemes')
-        .select('*');
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setSchemes(data);
-      } else {
-        setSchemes(staticSchemes);
-      }
+      const prompt = `Generate a JSON array of 4 popular government schemes for farmers in Odisha (including KALIA, PM-KISAN, and others). Return ONLY the raw JSON array, no markdown block formatting. Follow this format:
+      [
+        {"title": "KALIA Scheme", "description": "Provides financial aid of ₹10,000 per year to small and marginal farmers in Odisha..."},
+        ...
+      ]`;
+      const responseText = await askGemini(prompt);
+      
+      const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);
+      setSchemes(data);
     } catch (err) {
-      console.warn("Could not fetch schemes from DB, using mock data:", err.message);
+      console.warn("Gemini schemes generation failed, using static data:", err.message);
       setSchemes(staticSchemes);
     } finally {
       setLoading(false);
@@ -49,11 +48,11 @@ export default function SchemesModal({ isOpen, onClose }) {
         <h2>Government Schemes for Farmers</h2>
         
         {loading ? (
-          <p style={{ textAlign: 'center' }}>Loading government schemes...</p>
+          <p style={{ textAlign: 'center', color: '#00dd00' }}>✨ AI is fetching the latest government schemes...</p>
         ) : (
           <div id="schemesContainer">
             {schemes.map((s, index) => (
-              <div key={s.id || index} className="scheme-card">
+              <div key={index} className="scheme-card">
                 <h3>{s.title}</h3>
                 <p>{s.description}</p>
               </div>

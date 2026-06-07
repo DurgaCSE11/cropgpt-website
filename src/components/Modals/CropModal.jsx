@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import React, { useState } from 'react';
+import { askGemini } from '../../geminiService';
 
 const staticCrops = {
   rice: { name: "Rice (Paddy)", soil: "Clayey and loamy soils", fertilizer: "Nitrogen (Urea), Phosphorus, Potassium", watering: "Requires standing water (2-5 cm), frequent irrigation", harvest: "Approx. 90-120 days after planting" },
@@ -10,45 +10,33 @@ const staticCrops = {
 };
 
 export default function CropModal({ isOpen, onClose }) {
-  const [crops, setCrops] = useState({});
-  const [selectedCropKey, setSelectedCropKey] = useState('');
+  const [selectedCrop, setSelectedCrop] = useState('');
+  const [cropData, setCropData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadCrops();
-    }
-  }, [isOpen]);
+  const handleCropChange = async (e) => {
+    const cropKey = e.target.value;
+    setSelectedCrop(cropKey);
+    if (!cropKey) return;
 
-  const loadCrops = async () => {
     setLoading(true);
+    setCropData(null);
+
+    const displayName = staticCrops[cropKey]?.name || cropKey;
+
     try {
-      const { data, error } = await supabase
-        .from('crops')
-        .select('*');
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        // Convert array to key-based object
-        const cropObj = {};
-        data.forEach(item => {
-          cropObj[item.key_name] = {
-            name: item.name,
-            soil: item.soil,
-            fertilizer: item.fertilizer,
-            watering: item.watering,
-            harvest: item.harvest
-          };
-        });
-        setCrops(cropObj);
-      } else {
-        // Fallback to static
-        setCrops(staticCrops);
-      }
+      const prompt = `Generate a JSON object of crop guidelines for "${displayName}". Return ONLY the raw JSON object, no markdown styling. Format:
+      {"name": "${displayName}", "soil": "ideal soils description", "fertilizer": "recommended fertilizers", "watering": "watering instructions", "harvest": "harvest duration days"}`;
+      
+      const responseText = await askGemini(prompt);
+      
+      // Extract and Parse JSON
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);
+      setCropData(data);
     } catch (err) {
-      console.warn("Could not fetch crops from DB, using mock data:", err.message);
-      setCrops(staticCrops);
+      console.warn("Gemini guide generation failed, falling back to static data:", err.message);
+      setCropData(staticCrops[cropKey] || null);
     } finally {
       setLoading(false);
     }
@@ -56,59 +44,53 @@ export default function CropModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const data = selectedCropKey ? crops[selectedCropKey] : null;
-
   return (
     <div className={`modal modal-lg show`}>
       <div className="modal-content neon-border">
         <span className="close-btn" onClick={onClose}>&times;</span>
         <h2>Crop Manager</h2>
         
-        {loading ? (
-          <p style={{ textAlign: 'center' }}>Loading crop guidelines...</p>
-        ) : (
-          <>
-            <div className="form-group">
-              <label htmlFor="cropSelector">Select a Crop to get detailed information:</label>
-              <select 
-                id="cropSelector"
-                value={selectedCropKey}
-                onChange={(e) => setSelectedCropKey(e.target.value)}
-              >
-                <option value="" disabled>-- Select a Crop --</option>
-                {Object.keys(crops).map(key => (
-                  <option key={key} value={key}>{crops[key].name}</option>
-                ))}
-              </select>
-            </div>
+        <div className="form-group">
+          <label htmlFor="cropSelector">Select a Crop to get AI-generated guidelines:</label>
+          <select 
+            id="cropSelector"
+            value={selectedCrop}
+            onChange={handleCropChange}
+          >
+            <option value="" disabled>-- Select a Crop --</option>
+            {Object.keys(staticCrops).map(key => (
+              <option key={key} value={key}>{staticCrops[key].name}</option>
+            ))}
+          </select>
+        </div>
 
-            <div id="cropInfoDisplay">
-              {data ? (
-                <div>
-                  <h3>{data.name} Guide</h3>
-                  <div className="crop-info-grid">
-                    <div className="crop-info-item">
-                      <strong>Soil Type:</strong> {data.soil}
-                    </div>
-                    <div className="crop-info-item">
-                      <strong>Fertilizer:</strong> {data.fertilizer}
-                    </div>
-                    <div className="crop-info-item">
-                      <strong>Watering:</strong> {data.watering}
-                    </div>
-                    <div className="crop-info-item">
-                      <strong>Harvest Time:</strong> {data.harvest}
-                    </div>
-                  </div>
+        <div id="cropInfoDisplay">
+          {loading ? (
+            <p style={{ textAlign: 'center', color: '#00dd00' }}>✨ AI is compiling your crop guideline guide...</p>
+          ) : cropData ? (
+            <div>
+              <h3>{cropData.name} Guide (AI Generated)</h3>
+              <div className="crop-info-grid">
+                <div className="crop-info-item">
+                  <strong>Soil Type:</strong> {cropData.soil}
                 </div>
-              ) : (
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  Select a crop from the dropdown to see its details.
-                </p>
-              )}
+                <div className="crop-info-item">
+                  <strong>Fertilizer:</strong> {cropData.fertilizer}
+                </div>
+                <div className="crop-info-item">
+                  <strong>Watering:</strong> {cropData.watering}
+                </div>
+                <div className="crop-info-item">
+                  <strong>Harvest Time:</strong> {cropData.harvest}
+                </div>
+              </div>
             </div>
-          </>
-        )}
+          ) : (
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
+              Select a crop from the dropdown to see its details.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

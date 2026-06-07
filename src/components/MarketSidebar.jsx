@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { askGemini } from '../geminiService';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 
@@ -44,66 +44,51 @@ const staticMarketData = {
   }
 };
 
+const districtsList = ['Sambalpur', 'Cuttack', 'Bargarh', 'Puri', 'Koraput', 'Balasore'];
+
 export default function MarketSidebar() {
   const [district, setDistrict] = useState('Sambalpur');
-  const [marketList, setMarketList] = useState([]);
-  const [districtsList, setDistrictsList] = useState(['Sambalpur', 'Cuttack', 'Bargarh']);
+  const [activeData, setActiveData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadMarketPrices();
-  }, []);
+    loadMarketData();
+  }, [district]);
 
-  const loadMarketPrices = async () => {
+  const loadMarketData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('market_prices')
-        .select('*');
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setMarketList(data);
-        
-        // Extract unique districts
-        const uniq = Array.from(new Set(data.map(item => item.district)));
-        setDistrictsList(uniq);
-        if (!uniq.includes(district) && uniq.length > 0) {
-          setDistrict(uniq[0]);
-        }
-      } else {
-        setMarketList([]);
-      }
+      const prompt = `Generate a JSON object of mock market supply, demand, and prices for Paddy, Pulses, and Groundnuts in district "${district}" in Odisha. Return ONLY the raw JSON object, no markdown code block formatting. Follow this format:
+      {
+        "labels": ["Paddy", "Pulses", "Groundnuts"],
+        "demand": [85, 60, 55],
+        "supply": [75, 65, 50],
+        "prices": [
+          {"crop": "Paddy (Common)", "price": "₹2180"},
+          {"crop": "Arhar (Pulses)", "price": "₹7100"},
+          {"crop": "Groundnuts", "price": "₹6400"}
+        ]
+      }`;
+      const responseText = await askGemini(prompt);
+      
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);
+      
+      setActiveData({
+        labels: data.labels,
+        datasets: [
+          { label: 'Demand', data: data.demand, backgroundColor: 'rgba(0, 221, 0, 0.6)', borderColor: 'rgba(0, 221, 0, 1)', borderWidth: 1 },
+          { label: 'Supply', data: data.supply, backgroundColor: 'rgba(220, 53, 69, 0.6)', borderColor: 'rgba(220, 53, 69, 1)', borderWidth: 1 }
+        ],
+        prices: data.prices
+      });
     } catch (err) {
-      console.warn("Could not fetch market prices, using mock datasets:", err.message);
-      setMarketList([]);
+      console.warn("Gemini market data generation failed, using static data:", err.message);
+      setActiveData(staticMarketData[district] || staticMarketData.Sambalpur);
     } finally {
       setLoading(false);
     }
   };
-
-  // Compile active data structures
-  let activeData = null;
-
-  if (marketList.length > 0) {
-    const filtered = marketList.filter(item => item.district === district);
-    const labels = filtered.map(item => item.crop);
-    const demandData = filtered.map(item => item.demand);
-    const supplyData = filtered.map(item => item.supply);
-    const prices = filtered.map(item => ({ crop: item.crop, price: item.price }));
-
-    activeData = {
-      labels,
-      datasets: [
-        { label: 'Demand', data: demandData, backgroundColor: 'rgba(0, 221, 0, 0.6)', borderColor: 'rgba(0, 221, 0, 1)', borderWidth: 1 },
-        { label: 'Supply', data: supplyData, backgroundColor: 'rgba(220, 53, 69, 0.6)', borderColor: 'rgba(220, 53, 69, 1)', borderWidth: 1 }
-      ],
-      prices
-    };
-  } else {
-    activeData = staticMarketData[district] || staticMarketData.Sambalpur;
-  }
 
   const chartOptions = {
     responsive: true,
@@ -125,23 +110,23 @@ export default function MarketSidebar() {
       <div className="market-graph-container">
         <h3>Market Data</h3>
         
+        <div className="form-group">
+          <label htmlFor="districtMarketSelector">Select District:</label>
+          <select 
+            id="districtMarketSelector"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+          >
+            {districtsList.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
         {loading ? (
-          <p style={{ textAlign: 'center', marginTop: '40px' }}>Loading market indexes...</p>
-        ) : (
+          <p style={{ textAlign: 'center', marginTop: '40px', color: '#00dd00' }}>✨ AI updating market index...</p>
+        ) : activeData ? (
           <>
-            <div className="form-group">
-              <label htmlFor="districtMarketSelector">Select District:</label>
-              <select 
-                id="districtMarketSelector"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-              >
-                {districtsList.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-            
             <div className="chart-wrapper">
               <Bar 
                 data={{
@@ -171,6 +156,8 @@ export default function MarketSidebar() {
               </table>
             </div>
           </>
+        ) : (
+          <p style={{ textAlign: 'center', marginTop: '40px' }}>Select a district.</p>
         )}
       </div>
     </aside>
