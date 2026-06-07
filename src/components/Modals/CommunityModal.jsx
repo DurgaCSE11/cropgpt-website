@@ -6,23 +6,25 @@ const mockPosts = [
     id: 'mock-post-1',
     title: "Best organic pesticide for rice stem borer?",
     body: "I'm looking for effective organic or homemade pesticides to control stem borer infestation in my paddy field. Any suggestions?",
-    profiles: { name: "Ramesh Senapati" },
+    author_name: "Ramesh Senapati",
     created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     answers: [
       {
         id: 'mock-ans-1',
         text: "Try a neem oil solution. Mix 5ml of neem oil and 1ml of liquid soap in 1 liter of water and spray it.",
-        profiles: { name: "Dilip Kumar" },
+        author_name: "Dilip Kumar",
         created_at: new Date(Date.now() - 3600000 * 2).toISOString()
       }
     ]
   }
 ];
 
-export default function CommunityModal({ isOpen, onClose, user }) {
+export default function CommunityModal({ isOpen, onClose, isAdmin }) {
   const [posts, setPosts] = useState([]);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [authorName, setAuthorName] = useState('');
+  const [replyAuthorName, setReplyAuthorName] = useState({});
   const [replyText, setReplyText] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -30,30 +32,22 @@ export default function CommunityModal({ isOpen, onClose, user }) {
     if (isOpen) {
       fetchPosts();
     }
-  }, [isOpen, user]);
+  }, [isOpen]);
 
   const fetchPosts = async () => {
-    if (!user) {
-      const stored = localStorage.getItem('demo_posts');
-      setPosts(stored ? JSON.parse(stored) : mockPosts);
-      return;
-    }
-
     setLoading(true);
     try {
-      // 1. Fetch Posts
       const { data: postsData, error: postsError } = await supabase
         .from('forum_posts')
-        .select('*, profiles(name)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (postsError) throw postsError;
 
-      // 2. Fetch Answers for all posts
       const updatedPosts = await Promise.all((postsData || []).map(async (post) => {
         const { data: answersData, error: answersError } = await supabase
           .from('forum_answers')
-          .select('*, profiles(name)')
+          .select('*')
           .eq('post_id', post.id)
           .order('created_at', { ascending: true });
 
@@ -64,9 +58,10 @@ export default function CommunityModal({ isOpen, onClose, user }) {
         };
       }));
 
-      setPosts(updatedPosts);
+      setPosts(updatedPosts.length > 0 ? updatedPosts : mockPosts);
     } catch (err) {
-      console.error("Error fetching community posts:", err.message);
+      console.warn("Error fetching community posts, using fallback:", err.message);
+      setPosts(mockPosts);
     } finally {
       setLoading(false);
     }
@@ -76,28 +71,13 @@ export default function CommunityModal({ isOpen, onClose, user }) {
     e.preventDefault();
     if (!title.trim() || !body.trim()) return;
 
-    if (!user) {
-      const newPost = {
-        id: `mock-post-${Date.now()}`,
-        title: title.trim(),
-        body: body.trim(),
-        profiles: { name: "Anonymous Farmer" },
-        created_at: new Date().toISOString(),
-        answers: []
-      };
-      const updated = [newPost, ...posts];
-      setPosts(updated);
-      localStorage.setItem('demo_posts', JSON.stringify(updated));
-      setTitle('');
-      setBody('');
-      return;
-    }
+    const name = authorName.trim() || 'Anonymous Farmer';
 
     try {
       const { error } = await supabase
         .from('forum_posts')
         .insert([{
-          user_id: user.id,
+          author_name: name,
           title: title.trim(),
           body: body.trim()
         }]);
@@ -105,18 +85,46 @@ export default function CommunityModal({ isOpen, onClose, user }) {
       if (error) throw error;
       setTitle('');
       setBody('');
+      setAuthorName('');
       fetchPosts();
     } catch (err) {
-      alert("Error posting question: " + err.message);
+      console.error("Could not post to database, adding locally:", err.message);
+      const newPost = {
+        id: `local-post-${Date.now()}`,
+        title: title.trim(),
+        body: body.trim(),
+        author_name: name,
+        created_at: new Date().toISOString(),
+        answers: []
+      };
+      setPosts(prev => [newPost, ...prev]);
+      setTitle('');
+      setBody('');
+      setAuthorName('');
     }
   };
 
   const handlePostReply = async (e, postId) => {
     e.preventDefault();
     const text = replyText[postId];
+    const replier = replyAuthorName[postId] || 'Anonymous Responder';
     if (!text || !text.trim()) return;
 
-    if (!user) {
+    try {
+      const { error } = await supabase
+        .from('forum_answers')
+        .insert([{
+          post_id: postId,
+          author_name: replier.trim(),
+          text: text.trim()
+        }]);
+
+      if (error) throw error;
+      setReplyText(prev => ({ ...prev, [postId]: '' }));
+      setReplyAuthorName(prev => ({ ...prev, [postId]: '' }));
+      fetchPosts();
+    } catch (err) {
+      console.error("Could not post reply to database, adding locally:", err.message);
       const updated = posts.map(post => {
         if (post.id === postId) {
           return {
@@ -124,9 +132,9 @@ export default function CommunityModal({ isOpen, onClose, user }) {
             answers: [
               ...post.answers,
               {
-                id: `mock-ans-${Date.now()}`,
+                id: `local-ans-${Date.now()}`,
                 text: text.trim(),
-                profiles: { name: "Anonymous Responder" },
+                author_name: replier.trim(),
                 created_at: new Date().toISOString()
               }
             ]
@@ -135,30 +143,31 @@ export default function CommunityModal({ isOpen, onClose, user }) {
         return post;
       });
       setPosts(updated);
-      localStorage.setItem('demo_posts', JSON.stringify(updated));
       setReplyText(prev => ({ ...prev, [postId]: '' }));
-      return;
+      setReplyAuthorName(prev => ({ ...prev, [postId]: '' }));
     }
+  };
 
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
     try {
       const { error } = await supabase
-        .from('forum_answers')
-        .insert([{
-          post_id: postId,
-          user_id: user.id,
-          text: text.trim()
-        }]);
-
+        .from('forum_posts')
+        .delete()
+        .eq('id', postId);
       if (error) throw error;
-      setReplyText(prev => ({ ...prev, [postId]: '' }));
       fetchPosts();
     } catch (err) {
-      alert("Error posting reply: " + err.message);
+      alert("Delete failed: " + err.message);
     }
   };
 
   const handleReplyChange = (postId, val) => {
     setReplyText(prev => ({ ...prev, [postId]: val }));
+  };
+
+  const handleReplierNameChange = (postId, val) => {
+    setReplyAuthorName(prev => ({ ...prev, [postId]: val }));
   };
 
   if (!isOpen) return null;
@@ -171,6 +180,15 @@ export default function CommunityModal({ isOpen, onClose, user }) {
         
         <h3>Ask a New Question</h3>
         <form onSubmit={handlePostQuestion}>
+          <div className="form-group">
+            <label>Your Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g., Farmer Bipin (Leave blank for Anonymous)" 
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+            />
+          </div>
           <div className="form-group">
             <label>Question Title</label>
             <input 
@@ -202,14 +220,33 @@ export default function CommunityModal({ isOpen, onClose, user }) {
         ) : (
           <div id="forumPostsContainer">
             {posts.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No questions posted yet. Be the first to ask!</p>
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No questions posted yet.</p>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className="forum-post">
+                <div key={post.id} className="forum-post" style={{ position: 'relative' }}>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => handleDeletePost(post.id)}
+                      style={{
+                        position: 'absolute',
+                        top: '15px',
+                        right: '15px',
+                        backgroundColor: 'var(--expense-color)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        padding: '4px 8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  )}
                   <h3>{post.title}</h3>
                   <p>{post.body}</p>
                   <small style={{ color: 'var(--text-secondary)' }}>
-                    Posted by: {post.profiles?.name || 'Anonymous Farmer'} on {new Date(post.created_at).toLocaleString()}
+                    Posted by: {post.author_name} on {new Date(post.created_at).toLocaleString()}
                   </small>
                   
                   <div className="answer-section">
@@ -219,22 +256,29 @@ export default function CommunityModal({ isOpen, onClose, user }) {
                         <div key={ans.id} className="answer">
                           <div>{ans.text}</div>
                           <small style={{ color: 'var(--text-secondary)' }}>
-                            Answered by: {ans.profiles?.name || 'Anonymous Responder'} on {new Date(ans.created_at).toLocaleString()}
+                            Answered by: {ans.author_name} on {new Date(ans.created_at).toLocaleString()}
                           </small>
                         </div>
                       ))
                     ) : (
-                      <p>No answers yet.</p>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>No answers yet.</p>
                     )}
                     
                     <form className="answer-form" onSubmit={(e) => handlePostReply(e, post.id)}>
+                      <input 
+                        type="text" 
+                        placeholder="Your name" 
+                        style={{ width: '120px', padding: '6px', fontSize: '0.85rem' }}
+                        value={replyAuthorName[post.id] || ''}
+                        onChange={(e) => handleReplierNameChange(post.id, e.target.value)}
+                      />
                       <textarea 
                         placeholder="Write your answer..." 
                         value={replyText[post.id] || ''}
                         onChange={(e) => handleReplyChange(post.id, e.target.value)}
                         required
                       ></textarea>
-                      <button type="submit" className="form-submit-btn">Reply</button>
+                      <button type="submit" className="form-submit-btn" style={{ padding: '0 10px', height: '40px' }}>Reply</button>
                     </form>
                   </div>
                 </div>

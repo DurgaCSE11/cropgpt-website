@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabaseClient';
 import { askGemini } from '../geminiService';
 
-export default function Sidebar({ user, profileName, onOpenLogin, onOpenSignup, onLogout }) {
+export default function Sidebar({ user, profileName, onOpenLogin, onLogout }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [messages, setMessages] = useState([
     { sender: 'ai', text: 'Hello! Ask me about farming, crops, or schemes.' }
@@ -56,7 +55,7 @@ export default function Sidebar({ user, profileName, onOpenLogin, onOpenSignup, 
           onClick={handleToggleDropdown}
         >
           <i className="fas fa-user-circle profile-icon"></i>
-          <span>{user ? (profileName || 'Farmer') : 'Profile'}</span>
+          <span>{user ? 'Admin Console' : 'Profile'}</span>
           <i className="fas fa-chevron-down dropdown-arrow"></i>
         </div>
         
@@ -67,27 +66,17 @@ export default function Sidebar({ user, profileName, onOpenLogin, onOpenSignup, 
               className="dropdown-item" 
               onClick={(e) => { e.preventDefault(); onLogout(); }}
             >
-              <i className="fas fa-sign-out-alt"></i> Logout
+              <i className="fas fa-sign-out-alt"></i> Admin Logout
             </a>
           ) : (
-            <>
-              <a 
-                href="#" 
-                id="loginBtn" 
-                className="dropdown-item"
-                onClick={(e) => { e.preventDefault(); onOpenLogin(); }}
-              >
-                <i className="fas fa-sign-in-alt"></i> Login
-              </a>
-              <a 
-                href="#" 
-                id="signupBtn" 
-                className="dropdown-item"
-                onClick={(e) => { e.preventDefault(); onOpenSignup(); }}
-              >
-                <i className="fas fa-user-plus"></i> Sign Up
-              </a>
-            </>
+            <a 
+              href="#" 
+              id="loginBtn" 
+              className="dropdown-item"
+              onClick={(e) => { e.preventDefault(); onOpenLogin(); }}
+            >
+              <i className="fas fa-sign-in-alt"></i> Admin Login
+            </a>
           )}
         </div>
       </div>
