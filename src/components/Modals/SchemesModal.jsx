@@ -8,7 +8,7 @@ const staticSchemes = [
   { title: "Odisha Millets Mission (OMM)", description: "Promotes the cultivation and consumption of millets, providing technical support and market linkages to farmers." }
 ];
 
-export default function SchemesModal({ isOpen, onClose }) {
+export default function SchemesModal({ isOpen, onClose, language }) {
   const [schemes, setSchemes] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,7 @@ export default function SchemesModal({ isOpen, onClose }) {
     if (isOpen) {
       loadSchemes();
     }
-  }, [isOpen]);
+  }, [isOpen, language]);
 
   const loadSchemes = async () => {
     setLoading(true);
@@ -26,7 +26,7 @@ export default function SchemesModal({ isOpen, onClose }) {
         {"title": "KALIA Scheme", "description": "Provides financial aid of ₹10,000 per year to small and marginal farmers in Odisha..."},
         ...
       ]`;
-      const responseText = await askGemini(prompt);
+      const responseText = await askGemini(prompt, language);
       
       const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
       const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);

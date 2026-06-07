@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-export async function askGemini(prompt) {
+export async function askGemini(prompt, language = 'English') {
   // Local keyword-based response fallback if Supabase Edge Function is not deployed or fails
   const getMockResponse = (msgPrompt) => {
     const mockResponses = {
@@ -25,7 +25,9 @@ export async function askGemini(prompt) {
   try {
     // Invoke the Supabase Edge Function securely (no keys leaked on client)
     const { data, error } = await supabase.functions.invoke('gemini-chat', {
-      body: { prompt }
+      body: { 
+        prompt: `${prompt} \n\nIMPORTANT: You must write the entire response output in the "${language}" language. If returning a JSON structure, translate the text values inside the JSON attributes into ${language} while keeping the keys/structure intact.`
+      }
     });
 
     if (error) throw error;

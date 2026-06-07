@@ -22,6 +22,9 @@ import './App.css';
 export default function App() {
   const [user, setUser] = useState(null);
   
+  // Global Language selection
+  const [language, setLanguage] = useState('English');
+
   // Modal states
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [adminCockpitOpen, setAdminCockpitOpen] = useState(false);
@@ -88,6 +91,8 @@ export default function App() {
         unreadNotificationsCount={unreadNotifications}
         onOpenNotifications={() => setNotificationsOpen(true)}
         onOpenAbout={() => setAboutOpen(true)}
+        language={language}
+        onLanguageChange={setLanguage}
       />
 
       <div className="container">
@@ -98,11 +103,12 @@ export default function App() {
           onOpenLogin={() => setLoginModalOpen(true)}
           onOpenSignup={() => {}} // No registration for farmers
           onLogout={handleLogout}
+          language={language}
         />
 
         <DashboardGrid onOpenModal={handleOpenModal} />
 
-        <MarketSidebar />
+        <MarketSidebar language={language} />
       </div>
 
       {/* Floating Cockpit Trigger Button for Logged-In Admins */}
@@ -150,6 +156,7 @@ export default function App() {
       <WeatherModal 
         isOpen={weatherOpen}
         onClose={() => setWeatherOpen(false)}
+        language={language}
       />
 
       <FinanceModal 
@@ -161,11 +168,13 @@ export default function App() {
       <CropModal 
         isOpen={cropOpen}
         onClose={() => setCropOpen(false)}
+        language={language}
       />
 
       <SchemesModal 
         isOpen={schemesOpen}
         onClose={() => setSchemesOpen(false)}
+        language={language}
       />
 
       <CommunityModal 

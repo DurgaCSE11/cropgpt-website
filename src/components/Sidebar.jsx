@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { askGemini } from '../geminiService';
 
-export default function Sidebar({ user, profileName, onOpenLogin, onLogout }) {
+export default function Sidebar({ user, profileName, onOpenLogin, onLogout, language }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [messages, setMessages] = useState([
     { sender: 'ai', text: 'Hello! Ask me about farming, crops, or schemes.' }
@@ -13,6 +13,16 @@ export default function Sidebar({ user, profileName, onOpenLogin, onLogout }) {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // If the language changes, restart the intro bubble translated
+  useEffect(() => {
+    const greetings = {
+      English: 'Hello! Ask me about farming, crops, or schemes.',
+      Hindi: 'नमस्ते! मुझसे खेती, फसलों या योजनाओं के बारे में पूछें।',
+      Odia: 'ନମସ୍କାର! ମତେ ଚାଷ, ଫସଲ କିମ୍ବା ଯୋଜନା ବିଷୟରେ ପଚାରନ୍ତୁ।'
+    };
+    setMessages([{ sender: 'ai', text: greetings[language] || greetings.English }]);
+  }, [language]);
 
   const handleToggleDropdown = (e) => {
     e.stopPropagation();
@@ -37,7 +47,7 @@ export default function Sidebar({ user, profileName, onOpenLogin, onLogout }) {
     // Add placeholder AI message
     setMessages(prev => [...prev, { sender: 'ai', text: '...' }]);
 
-    const response = await askGemini(userMsg);
+    const response = await askGemini(userMsg, language);
 
     setMessages(prev => {
       const filtered = prev.slice(0, -1); // remove placeholder
@@ -98,7 +108,7 @@ export default function Sidebar({ user, profileName, onOpenLogin, onLogout }) {
             type="text" 
             id="ai-input" 
             className="ai-input" 
-            placeholder="Ask AI...." 
+            placeholder={language === 'Odia' ? 'ପଚାରନ୍ତୁ...' : language === 'Hindi' ? 'पूछें...' : 'Ask AI....'} 
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={loading}

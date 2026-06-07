@@ -10,7 +10,7 @@ const staticDistricts = [
   { name: "Sambalpur", temp: "32°C", soil: "Red and Yellow", idealCrops: "Rice, Pulses, Oilseeds, Sugarcane", wind: "11 km/h", humidity: "77%", rain: "35% chance of rain" }
 ];
 
-export default function WeatherModal({ isOpen, onClose }) {
+export default function WeatherModal({ isOpen, onClose, language }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function WeatherModal({ isOpen, onClose }) {
       const prompt = `Generate a JSON object of a mock weather alert and soil advisory for the district "${searchTerm}" in Odisha. Return ONLY the raw JSON object, no markdown code block formatting. Format:
       {"name": "${searchTerm}", "temp": "29°C", "soil": "Red loamy and Laterite", "idealCrops": "Rice, Cotton, Maize", "wind": "10 km/h", "humidity": "80%", "rain": "60% chance of rain"}`;
 
-      const responseText = await askGemini(prompt);
+      const responseText = await askGemini(prompt, language);
       
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);

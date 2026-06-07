@@ -9,26 +9,21 @@ const staticCrops = {
   groundnut: { name: "Groundnut (Peanut)", soil: "Sandy loam soils", fertilizer: "Phosphorus, Potassium, Gypsum", watering: "Every 8-10 days, avoid waterlogging", harvest: "Approx. 90-130 days" }
 };
 
-export default function CropModal({ isOpen, onClose }) {
+export default function CropModal({ isOpen, onClose, language }) {
   const [selectedCrop, setSelectedCrop] = useState('');
+  const [customCrop, setCustomCrop] = useState('');
   const [cropData, setCropData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleCropChange = async (e) => {
-    const cropKey = e.target.value;
-    setSelectedCrop(cropKey);
-    if (!cropKey) return;
-
+  const fetchCropData = async (cropName) => {
     setLoading(true);
     setCropData(null);
 
-    const displayName = staticCrops[cropKey]?.name || cropKey;
-
     try {
-      const prompt = `Generate a JSON object of crop guidelines for "${displayName}". Return ONLY the raw JSON object, no markdown styling. Format:
-      {"name": "${displayName}", "soil": "ideal soils description", "fertilizer": "recommended fertilizers", "watering": "watering instructions", "harvest": "harvest duration days"}`;
+      const prompt = `Generate a JSON object of crop guidelines for "${cropName}". Return ONLY the raw JSON object, no markdown styling. Format:
+      {"name": "${cropName}", "soil": "ideal soils description", "fertilizer": "recommended NPK fertilizers", "watering": "watering and irrigation instructions", "harvest": "harvest duration days/months"}`;
       
-      const responseText = await askGemini(prompt);
+      const responseText = await askGemini(prompt, language);
       
       // Extract and Parse JSON
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -36,10 +31,36 @@ export default function CropModal({ isOpen, onClose }) {
       setCropData(data);
     } catch (err) {
       console.warn("Gemini guide generation failed, falling back to static data:", err.message);
-      setCropData(staticCrops[cropKey] || null);
+      // Try local fallback matching static crops keys
+      const matchedKey = Object.keys(staticCrops).find(
+        key => staticCrops[key].name.toLowerCase().includes(cropName.toLowerCase()) || key.includes(cropName.toLowerCase())
+      );
+      setCropData(staticCrops[matchedKey] || {
+        name: cropName,
+        soil: "Well-drained fertile soil",
+        fertilizer: "NPK balanced fertilizers, compost",
+        watering: "Water regularly based on soil moisture",
+        harvest: "Approx. 90-120 days"
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDropdownChange = (e) => {
+    const cropKey = e.target.value;
+    setSelectedCrop(cropKey);
+    setCustomCrop('');
+    if (cropKey) {
+      fetchCropData(staticCrops[cropKey].name);
+    }
+  };
+
+  const handleCustomSubmit = (e) => {
+    e.preventDefault();
+    if (!customCrop.trim()) return;
+    setSelectedCrop('');
+    fetchCropData(customCrop.trim());
   };
 
   if (!isOpen) return null;
@@ -50,18 +71,36 @@ export default function CropModal({ isOpen, onClose }) {
         <span className="close-btn" onClick={onClose}>&times;</span>
         <h2>Crop Manager</h2>
         
-        <div className="form-group">
-          <label htmlFor="cropSelector">Select a Crop to get AI-generated guidelines:</label>
-          <select 
-            id="cropSelector"
-            value={selectedCrop}
-            onChange={handleCropChange}
-          >
-            <option value="" disabled>-- Select a Crop --</option>
-            {Object.keys(staticCrops).map(key => (
-              <option key={key} value={key}>{staticCrops[key].name}</option>
-            ))}
-          </select>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          {/* Dropdown Choice */}
+          <div className="form-group">
+            <label htmlFor="cropSelector">Select a Crop:</label>
+            <select 
+              id="cropSelector"
+              value={selectedCrop}
+              onChange={handleDropdownChange}
+            >
+              <option value="" disabled>-- Select a Crop --</option>
+              {Object.keys(staticCrops).map(key => (
+                <option key={key} value={key}>{staticCrops[key].name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Custom Crop Input */}
+          <form onSubmit={handleCustomSubmit} className="form-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <label>Or Type Custom Crop Name:</label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input 
+                type="text" 
+                placeholder="e.g. Tomato, Mango, Betel Vine..." 
+                value={customCrop}
+                onChange={(e) => setCustomCrop(e.target.value)}
+                style={{ flexGrow: 1 }}
+              />
+              <button type="submit" className="form-submit-btn" style={{ margin: 0, padding: '10px 15px', width: 'auto', whiteSpace: 'nowrap' }}>AI Guide</button>
+            </div>
+          </form>
         </div>
 
         <div id="cropInfoDisplay">
@@ -87,7 +126,7 @@ export default function CropModal({ isOpen, onClose }) {
             </div>
           ) : (
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-              Select a crop from the dropdown to see its details.
+              Select a crop from the list or type a custom crop to see its details.
             </p>
           )}
         </div>
