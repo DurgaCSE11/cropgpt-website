@@ -18,22 +18,22 @@ serve(async (req) => {
     // Dynamically load keys cropgpt1, cropgpt2, cropgpt3 ... up to cropgpt20
     const apiKeys = [];
     for (let i = 1; i <= 20; i++) {
-      const key = Deno.env.get(`cropgpt${i}`);
+      const key = Deno.env.get(`cropgpt${i}`) || Deno.env.get(`CROPGPT${i}`);
       if (key) {
         apiKeys.push(key);
       }
     }
 
     if (apiKeys.length === 0) {
-      throw new Error("No Gemini API Keys (cropgpt1, cropgpt2, etc.) set in Supabase Secrets.")
+      throw new Error("No Gemini API Keys (cropgpt1/CROPGPT1, etc.) set in Supabase Secrets.")
     }
 
     // Shuffle the keys randomly to distribute the query load evenly.
     // This prevents any single key from getting exhausted/rate-limited first.
     const shuffledKeys = apiKeys.sort(() => Math.random() - 0.5);
 
-    // 2. Models to try in priority order
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
+    // 2. Models to try in priority order (stable, real models)
+    const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
     let responseText = "";
     let lastError = null;
 
