@@ -46,11 +46,13 @@ serve(async (req) => {
         for (const modelName of models) {
           try {
             const model = genAI.getGenerativeModel({ model: modelName });
-            const result = await model.generateContent(
-              `You are CropGPT, a helpful and knowledgeable agricultural AI assistant. You support farmers from Odisha with crop management, weather, government schemes, and financial guidance. Keep your answers brief, actionable, and friendly.
+            
+            const isJsonPrompt = prompt.toLowerCase().includes("json") || prompt.toLowerCase().includes("array") || prompt.toLowerCase().includes("format");
+            const finalPrompt = isJsonPrompt ? prompt : `You are CropGPT, a helpful and knowledgeable agricultural AI assistant. You support farmers from Odisha with crop management, weather, government schemes, and financial guidance. Keep your answers brief, actionable, and friendly.
               
-              User's question: ${prompt}`
-            );
+              User's question: ${prompt}`;
+
+            const result = await model.generateContent(finalPrompt);
             responseText = result.response.text();
             if (responseText) break; // Success!
           } catch (modelErr) {

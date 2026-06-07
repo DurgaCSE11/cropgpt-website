@@ -1,16 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { askGemini } from '../../geminiService';
 
-const staticSchemes = [
-  { title: "KALIA (Krushak Assistance for Livelihood and Income Augmentation)", description: "Provides financial support to small and marginal farmers for cultivation, livelihood, and insurance." },
-  { title: "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)", description: "A central government scheme providing an income support of ₹6,000 per year in three equal installments to all landholding farmer families." },
-  { title: "Balaram Yojana", description: "Aims to provide agricultural credit to landless farmers through Joint Liability Groups (JLGs)." },
-  { title: "Odisha Millets Mission (OMM)", description: "Promotes the cultivation and consumption of millets, providing technical support and market linkages to farmers." }
-];
-
 export default function SchemesModal({ isOpen, onClose, language }) {
   const [schemes, setSchemes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -20,11 +14,12 @@ export default function SchemesModal({ isOpen, onClose, language }) {
 
   const loadSchemes = async () => {
     setLoading(true);
+    setError('');
     try {
-      const prompt = `Generate a JSON array of 4 popular government schemes for farmers in Odisha (including KALIA, PM-KISAN, and others). Return ONLY the raw JSON array, no markdown block formatting. Follow this format:
+      // Prompt Gemini to fetch the absolute current/present schemes without hardcoded suggestions
+      const prompt = `Generate a JSON array of 4 active, current government schemes for farmers in Odisha or India. Return ONLY the raw JSON array, no markdown code block formatting. Follow this format exactly:
       [
-        {"title": "KALIA Scheme", "description": "Provides financial aid of ₹10,000 per year to small and marginal farmers in Odisha..."},
-        ...
+        {"title": "Name of the active scheme", "description": "Details about financial assistance, eligibility, and benefits of the scheme."}
       ]`;
       const responseText = await askGemini(prompt, language);
       
@@ -32,8 +27,8 @@ export default function SchemesModal({ isOpen, onClose, language }) {
       const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);
       setSchemes(data);
     } catch (err) {
-      console.warn("Gemini schemes generation failed, using static data:", err.message);
-      setSchemes(staticSchemes);
+      console.warn("Gemini schemes generation failed:", err.message);
+      setError("Unable to load live government schemes. Please check your Gemini API connection.");
     } finally {
       setLoading(false);
     }
@@ -48,7 +43,9 @@ export default function SchemesModal({ isOpen, onClose, language }) {
         <h2>Government Schemes for Farmers</h2>
         
         {loading ? (
-          <p style={{ textAlign: 'center', color: '#00dd00' }}>✨ AI is fetching the latest government schemes...</p>
+          <p style={{ textAlign: 'center', color: '#00dd00' }}>✨ AI is compiling current government agricultural schemes...</p>
+        ) : error ? (
+          <p style={{ textAlign: 'center', color: 'var(--expense-color)', fontWeight: 'bold' }}>{error}</p>
         ) : (
           <div id="schemesContainer">
             {schemes.map((s, index) => (

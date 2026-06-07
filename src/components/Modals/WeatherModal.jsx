@@ -14,6 +14,7 @@ export default function WeatherModal({ isOpen, onClose, language }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
@@ -21,19 +22,41 @@ export default function WeatherModal({ isOpen, onClose, language }) {
 
     setLoading(true);
     setWeatherData(null);
+    setError('');
 
     try {
-      const prompt = `Generate a JSON object of a mock weather alert and soil advisory for the district "${searchTerm}" in Odisha. Return ONLY the raw JSON object, no markdown code block formatting. Format:
-      {"name": "${searchTerm}", "temp": "29°C", "soil": "Red loamy and Laterite", "idealCrops": "Rice, Cotton, Maize", "wind": "10 km/h", "humidity": "80%", "rain": "60% chance of rain"}`;
+      const prompt = `Validate if "${searchTerm}" is a real, existing district, city, town, or state in India (especially Odisha).
+      If it is NOT a valid geographic location (for example, if it is a greeting like "hi", "hello", "hey", or random words/letters like "test", "xyz", "ok"), return exactly this JSON:
+      {"error": "Please enter a valid district or region in Odisha/India."}
+
+      If it is a valid location, generate a JSON object of a mock weather alert and agricultural advisory for "${searchTerm}". Return ONLY the raw JSON object, no markdown code block formatting. Format:
+      {"name": "Proper Name of Location", "temp": "29°C", "soil": "Red loamy and Laterite", "idealCrops": "Rice, Cotton, Maize", "wind": "10 km/h", "humidity": "80%", "rain": "60% chance of rain"}`;
 
       const responseText = await askGemini(prompt, language);
       
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(responseText);
-      setWeatherData(data);
+
+      if (data.error) {
+        setError(data.error);
+        setWeatherData(null);
+      } else {
+        setWeatherData(data);
+      }
     } catch (err) {
       console.warn("Gemini weather generation failed, running local search fallback:", err.message);
-      const matched = staticDistricts.find(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const lowercaseSearch = searchTerm.trim().toLowerCase();
+      const greetings = ['hi', 'hello', 'hey', 'yo', 'good', 'morning', 'afternoon', 'evening', 'test', 'admin', 'ok', 'no', 'yes'];
+      
+      if (greetings.includes(lowercaseSearch) || lowercaseSearch.length < 3) {
+        setError("Please enter a valid district or region in Odisha.");
+        setWeatherData(null);
+        setLoading(false);
+        return;
+      }
+
+      const matched = staticDistricts.find(d => d.name.toLowerCase().includes(lowercaseSearch));
       if (matched) {
         setWeatherData(matched);
       } else {
@@ -74,6 +97,8 @@ export default function WeatherModal({ isOpen, onClose, language }) {
         <div id="weatherResultsContainer">
           {loading ? (
             <p style={{ textAlign: 'center', color: '#00dd00' }}>✨ AI is fetching regional forecast and advisory...</p>
+          ) : error ? (
+            <p style={{ textAlign: 'center', color: 'var(--expense-color)', fontWeight: 'bold' }}>⚠️ {error}</p>
           ) : weatherData ? (
             <div>
               <h3>{weatherData.name} Advisory (AI Generated)</h3>
