@@ -20,20 +20,25 @@ serve(async (req) => {
       Deno.env.get('cropgpt1'),
       Deno.env.get('cropgpt2'),
       Deno.env.get('cropgpt3'),
-      Deno.env.get('cropgpt4')
+      Deno.env.get('cropgpt4'),
+      Deno.env.get('cropgpt5')
     ].filter(Boolean)
 
     if (apiKeys.length === 0) {
       throw new Error("No Gemini API Keys (cropgpt1, cropgpt2, etc.) set in Supabase Secrets.")
     }
 
+    // Shuffle the keys randomly to distribute the query load evenly.
+    // This prevents any single key from getting exhausted/rate-limited first.
+    const shuffledKeys = apiKeys.sort(() => Math.random() - 0.5);
+
     // 2. Models to try in priority order
     const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
     let responseText = "";
     let lastError = null;
 
-    // Try keys in sequence
-    for (const key of apiKeys) {
+    // Loop through the randomized keys
+    for (const key of shuffledKeys) {
       try {
         const genAI = new GoogleGenAI(key);
 
