@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { GoogleGenAI } from "npm:@google/generative-ai"
+import { GoogleGenerativeAI } from "npm:@google/generative-ai"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +40,7 @@ serve(async (req) => {
     // Loop through the randomized keys
     for (const key of shuffledKeys) {
       try {
-        const genAI = new GoogleGenAI(key);
+        const genAI = new GoogleGenerativeAI(key);
 
         // Try models in sequence for the current key
         for (const modelName of models) {
