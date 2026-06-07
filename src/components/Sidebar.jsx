@@ -1,28 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { askGemini } from '../geminiService';
+import React, { useState, useEffect } from 'react';
 
 export default function Sidebar({ user, profileName, onOpenLogin, onLogout, language }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { sender: 'ai', text: 'Hello! Ask me about farming, crops, or schemes.' }
-  ]);
-  const [inputText, setInputText] = useState('');
-  const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef(null);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // If the language changes, restart the intro bubble translated
-  useEffect(() => {
-    const greetings = {
-      English: 'Hello! Ask me about farming, crops, or schemes.',
-      Hindi: 'नमस्ते! मुझसे खेती, फसलों या योजनाओं के बारे में पूछें।',
-      Odia: 'ନମସ୍କାର! ମତେ ଚାଷ, ଫସଲ କିମ୍ବା ଯୋଜନା ବିଷୟରେ ପଚାରନ୍ତୁ।'
-    };
-    setMessages([{ sender: 'ai', text: greetings[language] || greetings.English }]);
-  }, [language]);
 
   const handleToggleDropdown = (e) => {
     e.stopPropagation();
@@ -34,27 +13,6 @@ export default function Sidebar({ user, profileName, onOpenLogin, onLogout, lang
     window.addEventListener('click', handleCloseDropdown);
     return () => window.removeEventListener('click', handleCloseDropdown);
   }, []);
-
-  const handleSendChat = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim() || loading) return;
-
-    const userMsg = inputText.trim();
-    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
-    setInputText('');
-    setLoading(true);
-
-    // Add placeholder AI message
-    setMessages(prev => [...prev, { sender: 'ai', text: '...' }]);
-
-    const response = await askGemini(userMsg, language);
-
-    setMessages(prev => {
-      const filtered = prev.slice(0, -1); // remove placeholder
-      return [...filtered, { sender: 'ai', text: response }];
-    });
-    setLoading(false);
-  };
 
   return (
     <aside className="left-sidebar neon-border">
@@ -89,39 +47,6 @@ export default function Sidebar({ user, profileName, onOpenLogin, onLogout, lang
             </a>
           )}
         </div>
-      </div>
-      
-      <div className="chats-section">
-        <div className="chats-header">
-          <h2>AI Chat</h2>
-        </div>
-        <div id="aiChatWindow">
-          {messages.map((m, idx) => (
-            <div key={idx} className={`chat-message ${m.sender}`}>
-              {m.text}
-            </div>
-          ))}
-          <div ref={chatEndRef} />
-        </div>
-        <form id="aiChatForm" className="ai-input-area" onSubmit={handleSendChat}>
-          <input 
-            type="text" 
-            id="ai-input" 
-            className="ai-input" 
-            placeholder={language === 'Odia' ? 'ପଚାରନ୍ତୁ...' : language === 'Hindi' ? 'पूछें...' : 'Ask AI....'} 
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            disabled={loading}
-          />
-          <button 
-            type="submit" 
-            className="voice-btn" 
-            title="Send"
-            disabled={loading}
-          >
-            <i className="fas fa-paper-plane"></i>
-          </button>
-        </form>
       </div>
     </aside>
   );

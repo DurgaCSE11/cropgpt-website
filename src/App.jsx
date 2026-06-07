@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import DashboardGrid from './components/DashboardGrid';
 import MarketSidebar from './components/MarketSidebar';
+import AiChatPanel from './components/AiChatPanel';
 
 // Modals
 import AuthModal from './components/Modals/AuthModal';
@@ -106,7 +107,9 @@ export default function App() {
           language={language}
         />
 
-        <DashboardGrid onOpenModal={handleOpenModal} />
+        <DashboardGrid onOpenModal={handleOpenModal}>
+          <AiChatPanel language={language} />
+        </DashboardGrid>
 
         <MarketSidebar language={language} />
       </div>

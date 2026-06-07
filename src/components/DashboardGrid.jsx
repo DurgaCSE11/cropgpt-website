@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function DashboardGrid({ onOpenModal }) {
+export default function DashboardGrid({ onOpenModal, children }) {
   const cards = [
     { key: 'weather', icon: 'fa-cloud-sun-rain', label: 'Weather Alerts' },
     { key: 'finance', icon: 'fa-wallet', label: 'Finance Manager' },
@@ -11,20 +11,23 @@ export default function DashboardGrid({ onOpenModal }) {
   ];
 
   return (
-    <main className="main-content">
-      <h2>Dashboard</h2>
-      <div className="dashboard-grid">
-        {cards.map((c) => (
-          <div 
-            key={c.key}
-            className="dashboard-item neon-border"
-            onClick={() => onOpenModal(c.key)}
-          >
-            <i className={`fas ${c.icon}`}></i>
-            <span>{c.label}</span>
-          </div>
-        ))}
+    <main className="main-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div>
+        <h2>Dashboard</h2>
+        <div className="dashboard-grid">
+          {cards.map((c) => (
+            <div 
+              key={c.key}
+              className="dashboard-item neon-border"
+              onClick={() => onOpenModal(c.key)}
+            >
+              <i className={`fas ${c.icon}`}></i>
+              <span>{c.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
+      {children}
     </main>
   );
 }
