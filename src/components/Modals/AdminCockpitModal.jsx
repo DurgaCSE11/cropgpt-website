@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
+import { askGemini } from '../../geminiService';
 
 export default function AdminCockpitModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('weather');
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState('');
 
   // Weather Table Data & Form
   const [weatherList, setWeatherList] = useState([]);
@@ -78,6 +81,104 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
       loadTabRecords();
     } catch (err) {
       alert("Delete failed: " + err.message);
+    }
+  };
+
+  // Helper parser for Gemini JSON responses
+  const extractJSON = (text) => {
+    try {
+      const match = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (match) {
+        return JSON.parse(match[0]);
+      }
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("JSON parsing failed for text:", text);
+      throw new Error("AI responded with invalid format. Please try again.");
+    }
+  };
+
+  // AI POPULATE HANDLER (Option B)
+  const handleAiPopulate = async () => {
+    if (!window.confirm("This will auto-populate your database tables with AI-generated agricultural data for Odisha. Continue?")) return;
+    
+    setAiLoading(true);
+    setAiStatus('Starting AI generation...');
+
+    try {
+      // 1. Generate Crops Guidelines
+      setAiStatus('Generating crops guidelines with Gemini...');
+      const cropPrompt = `Generate a JSON array of exactly 5 crops common in Odisha (Rice, Maize, Sugarcane, Cotton, Groundnut). Return ONLY the raw JSON array. Do not include markdown code block formatting. Follow this format:
+      [
+        {"key_name": "rice", "name": "Rice (Paddy)", "soil": "Clayey and loamy soils", "fertilizer": "Nitrogen (Urea), Phosphorus, Potassium", "watering": "Requires standing water (2-5 cm), frequent irrigation", "harvest": "Approx. 90-120 days after planting"},
+        ...
+      ]`;
+      const cropText = await askGemini(cropPrompt);
+      const cropData = extractJSON(cropText);
+      
+      setAiStatus('Saving crop guides to Supabase...');
+      for (const item of cropData) {
+        await supabase.from('crops').upsert(item, { onConflict: 'key_name' });
+      }
+
+      // 2. Generate Weather Advisories
+      setAiStatus('Generating regional weather advisories...');
+      const weatherPrompt = `Generate a JSON array of weather and soil reports for 5 districts in Odisha (Sambalpur, Cuttack, Bargarh, Puri, Koraput). Return ONLY the raw JSON array. Format:
+      [
+        {"district": "Sambalpur", "temp": "32°C", "soil": "Red and Yellow soil", "ideal_crops": "Rice, Pulses, Sugarcane", "wind": "11 km/h", "humidity": "77%", "rain": "35% chance of rain"},
+        ...
+      ]`;
+      const weatherText = await askGemini(weatherPrompt);
+      const weatherData = extractJSON(weatherText);
+
+      setAiStatus('Saving weather reports to Supabase...');
+      for (const item of weatherData) {
+        await supabase.from('weather_advisories').upsert(item, { onConflict: 'district' });
+      }
+
+      // 3. Generate Market Prices
+      setAiStatus('Generating crop market prices...');
+      const marketPrompt = `Generate a JSON array of market supply, demand, and prices for Paddy, Pulses, Jute, and Groundnuts in Sambalpur, Cuttack, and Bargarh. Return ONLY the raw JSON array. Format:
+      [
+        {"district": "Sambalpur", "crop": "Paddy", "price": "₹2183", "demand": 85, "supply": 75},
+        ...
+      ]`;
+      const marketText = await askGemini(marketPrompt);
+      const marketData = extractJSON(marketText);
+
+      setAiStatus('Saving market prices to Supabase...');
+      // Clear old prices to prevent duplicate records
+      await supabase.from('market_prices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      for (const item of marketData) {
+        await supabase.from('market_prices').insert(item);
+      }
+
+      // 4. Generate Govt Schemes
+      setAiStatus('Generating Odisha agricultural schemes...');
+      const schemePrompt = `Generate a JSON array of 4 popular government schemes for farmers in Odisha (like KALIA, PM-KISAN, Balaram, OMM). Return ONLY the raw JSON array. Format:
+      [
+        {"title": "KALIA Scheme", "description": "Provides financial assistance of ₹10,000 per year to small and marginal farmers..."},
+        ...
+      ]`;
+      const schemeText = await askGemini(schemePrompt);
+      const schemeData = extractJSON(schemeText);
+
+      setAiStatus('Saving government schemes to Supabase...');
+      // Clear old schemes
+      await supabase.from('schemes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      for (const item of schemeData) {
+        await supabase.from('schemes').insert(item);
+      }
+
+      setAiStatus('');
+      alert("✨ Database successfully populated with AI data! Refreshing dashboard...");
+      loadTabRecords();
+
+    } catch (err) {
+      alert("AI Generation failed: " + err.message);
+      console.error(err);
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -188,7 +289,7 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
       <div 
         className="modal-content neon-border" 
         style={{ 
-          maxWidth: '900px', 
+          maxWidth: '950px', 
           backgroundColor: '#0f0f15', 
           color: '#ffffff',
           borderRadius: '15px' 
@@ -196,15 +297,44 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
       >
         <span className="close-btn" onClick={onClose} style={{ color: '#ffffff' }}>&times;</span>
         
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h2 style={{ color: '#00dd00', textShadow: '0 0 10px rgba(0, 221, 0, 0.8)', fontSize: '2rem' }}>
-            🛰️ CropGPT Cockpit Control Room
-          </h2>
-          <p style={{ color: '#888899', fontSize: '0.95rem' }}>Administrator Console for dynamic database records</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ textAlign: 'left' }}>
+            <h2 style={{ color: '#00dd00', textShadow: '0 0 10px rgba(0, 221, 0, 0.8)', fontSize: '1.8rem', margin: 0 }}>
+              🛰️ CropGPT Cockpit Control Room
+            </h2>
+            <p style={{ color: '#888899', fontSize: '0.85rem', marginTop: '3px' }}>Administrator Console for dynamic database records</p>
+          </div>
+          
+          <div>
+            <button
+              onClick={handleAiPopulate}
+              disabled={aiLoading}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: aiLoading ? '#333' : '#00dd00',
+                color: aiLoading ? '#999' : '#000000',
+                border: 'none',
+                borderRadius: '5px',
+                fontWeight: 'bold',
+                cursor: aiLoading ? 'not-allowed' : 'pointer',
+                boxShadow: aiLoading ? 'none' : '0 0 10px rgba(0, 221, 0, 0.5)',
+                fontSize: '0.9rem',
+                transition: 'all 0.2s'
+              }}
+            >
+              {aiLoading ? '✨ Populating...' : '✨ Populate DB with AI'}
+            </button>
+          </div>
         </div>
 
+        {aiLoading && (
+          <div style={{ backgroundColor: 'rgba(0, 221, 0, 0.1)', border: '1px dashed #00dd00', padding: '10px 15px', borderRadius: '5px', marginBottom: '20px', color: '#00dd00', fontWeight: '500', fontSize: '0.9rem', textAlign: 'center' }}>
+            ⏳ {aiStatus}
+          </div>
+        )}
+
         {/* Console Tabs */}
-        <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #222233', paddingBottom: '10px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #222233', paddingBottom: '10px', marginBottom: '20px', overflowX: 'auto' }}>
           <button 
             onClick={() => setActiveTab('weather')}
             style={{
@@ -215,7 +345,8 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
               borderRadius: '5px',
               cursor: 'pointer',
               fontWeight: 'bold',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
             }}
           >
             🌤️ Weather Advisories
@@ -230,7 +361,8 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
               borderRadius: '5px',
               cursor: 'pointer',
               fontWeight: 'bold',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
             }}
           >
             📊 Market Indexer
@@ -245,7 +377,8 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
               borderRadius: '5px',
               cursor: 'pointer',
               fontWeight: 'bold',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
             }}
           >
             🌾 Crops Guide
@@ -260,7 +393,8 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
               borderRadius: '5px',
               cursor: 'pointer',
               fontWeight: 'bold',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap'
             }}
           >
             📜 Schemes Publisher
@@ -268,7 +402,7 @@ export default function AdminCockpitModal({ isOpen, onClose }) {
         </div>
 
         {/* Split Grid for Admin operations */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '5px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', maxHeight: '50vh', overflowY: 'auto', paddingRight: '5px' }}>
           
           {/* LEFT: Forms Panel */}
           <div style={{ backgroundColor: '#161622', padding: '20px', borderRadius: '10px', border: '1px solid #222233' }}>
