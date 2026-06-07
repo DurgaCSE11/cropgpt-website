@@ -41,12 +41,22 @@ export default function App() {
   useEffect(() => {
     // 1. Fetch active admin session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      if (currentUser && currentUser.email === 'durgaprasadmahapatra21@gmail.com') {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
     });
 
     // 2. Listen for session changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      if (currentUser && currentUser.email === 'durgaprasadmahapatra21@gmail.com') {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
     });
 
     return () => subscription.unsubscribe();
