@@ -32,10 +32,10 @@ serve(async (req) => {
     // This prevents any single key from getting exhausted/rate-limited first.
     const shuffledKeys = apiKeys.sort(() => Math.random() - 0.5);
 
-    // 2. Models to try in priority order (stable, real models)
-    const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
+    // 2. Models to try in priority order (preferred 2.x/2.5 models first, with stable 1.5 fallbacks)
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
     let responseText = "";
-    let lastError = null;
+    const diagnostics = [];
 
     // Loop through the randomized keys
     for (const key of shuffledKeys) {
@@ -56,20 +56,25 @@ serve(async (req) => {
             responseText = result.response.text();
             if (responseText) break; // Success!
           } catch (modelErr) {
-            console.warn(`Model ${modelName} failed with current key:`, modelErr.message);
-            lastError = modelErr;
+            diagnostics.push({
+              key: key.substring(0, 6) + "...",
+              model: modelName,
+              error: modelErr.message
+            });
           }
         }
 
         if (responseText) break; // Success!
       } catch (keyErr) {
-        console.warn("API Key failed, switching to next key:", keyErr.message);
-        lastError = keyErr;
+        diagnostics.push({
+          key: key.substring(0, 6) + "...",
+          error: keyErr.message
+        });
       }
     }
 
     if (!responseText) {
-      throw new Error(`All keys and models failed. Last error: ${lastError?.message}`);
+      throw new Error(`All keys and models failed. Diagnostics: ${JSON.stringify(diagnostics)}`);
     }
 
     return new Response(
