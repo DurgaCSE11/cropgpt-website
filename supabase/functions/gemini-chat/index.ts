@@ -32,8 +32,8 @@ serve(async (req) => {
     // This prevents any single key from getting exhausted/rate-limited first.
     const shuffledKeys = apiKeys.sort(() => Math.random() - 0.5);
 
-    // 2. Models to try in priority order (preferred 2.x/2.5 models first, with stable 1.5 fallbacks)
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"];
+    // 2. Models to try in priority order
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
     let responseText = "";
     const diagnostics = [];
 
