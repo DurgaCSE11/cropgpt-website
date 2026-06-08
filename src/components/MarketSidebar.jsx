@@ -16,19 +16,39 @@ const stateData = {
   "Andhra Pradesh": ["Visakhapatnam", "East Godavari", "West Godavari", "Chittoor", "Guntur", "Nellore"]
 };
 
-const staticMarketData = {
-  Sambalpur: {
+const getFallbackMarketData = (locationName) => {
+  let hash = 0;
+  for (let i = 0; i < locationName.length; i++) {
+    hash = locationName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  const getVal = (min, max, offset) => {
+    return Math.abs((hash + offset) % (max - min + 1)) + min;
+  };
+
+  const paddyPrice = getVal(2150, 2300, 12);
+  const pulsesPrice = getVal(6800, 7500, 34);
+  const oilseedPrice = getVal(6000, 6600, 56);
+
+  const paddyDemand = getVal(70, 95, 10);
+  const paddySupply = getVal(60, 90, 20);
+  const pulsesDemand = getVal(50, 85, 30);
+  const pulsesSupply = getVal(40, 80, 40);
+  const oilseedDemand = getVal(45, 80, 50);
+  const oilseedSupply = getVal(35, 75, 60);
+
+  return {
     labels: ['Paddy', 'Pulses', 'Oilseeds'],
     datasets: [
-      { label: 'Demand', data: [85, 60, 50], backgroundColor: 'rgba(0, 221, 0, 0.6)', borderColor: 'rgba(0, 221, 0, 1)', borderWidth: 1 },
-      { label: 'Supply', data: [75, 65, 45], backgroundColor: 'rgba(220, 53, 69, 0.6)', borderColor: 'rgba(220, 53, 69, 1)', borderWidth: 1 }
+      { label: 'Demand', data: [paddyDemand, pulsesDemand, oilseedDemand], backgroundColor: 'rgba(0, 221, 0, 0.6)', borderColor: 'rgba(0, 221, 0, 1)', borderWidth: 1 },
+      { label: 'Supply', data: [paddySupply, pulsesSupply, oilseedSupply], backgroundColor: 'rgba(220, 53, 69, 0.6)', borderColor: 'rgba(220, 53, 69, 1)', borderWidth: 1 }
     ],
     prices: [
-      { crop: 'Paddy (Common)', price: '₹2183' },
-      { crop: 'Arhar (Pulses)', price: '₹7000' },
-      { crop: 'Groundnut (Oilseed)', price: '₹6377' }
+      { crop: 'Paddy (Common)', price: `₹${paddyPrice}` },
+      { crop: 'Arhar (Pulses)', price: `₹${pulsesPrice}` },
+      { crop: 'Groundnut (Oilseed)', price: `₹${oilseedPrice}` }
     ]
-  }
+  };
 };
 
 export default function MarketSidebar({ language }) {
@@ -82,7 +102,7 @@ export default function MarketSidebar({ language }) {
       });
     } catch (err) {
       console.warn("Gemini market data generation failed, using static fallback:", err.message);
-      setActiveData(staticMarketData.Sambalpur);
+      setActiveData(getFallbackMarketData(locationName));
     } finally {
       setLoading(false);
     }
