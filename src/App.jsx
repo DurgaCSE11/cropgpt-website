@@ -13,7 +13,6 @@ import CommunityModal from './components/Modals/CommunityModal';
 import FarmKartModal from './components/Modals/FarmKartModal';
 import NotificationsModal from './components/Modals/NotificationsModal';
 import AboutModal from './components/Modals/AboutModal';
-import AdminCockpitModal from './components/Modals/AdminCockpitModal';
 
 import './App.css';
 
@@ -22,7 +21,6 @@ export default function App() {
   const [language, setLanguage] = useState('English');
 
   // Modal states
-  const [adminCockpitOpen, setAdminCockpitOpen] = useState(false);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [financeOpen, setFinanceOpen] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
@@ -62,40 +60,7 @@ export default function App() {
         <MarketSidebar language={language} />
       </div>
 
-      {/* Floating Cockpit Trigger Button (Always available for easy demonstration) */}
-      <button
-        onClick={() => setAdminCockpitOpen(true)}
-        style={{
-          position: 'fixed',
-          bottom: '25px',
-          right: '25px',
-          backgroundColor: 'var(--primary-neon)',
-          color: '#000000',
-          border: 'none',
-          borderRadius: '50px',
-          padding: '15px 25px',
-          fontWeight: 'bold',
-          fontSize: '1rem',
-          cursor: 'pointer',
-          boxShadow: '0 0 15px rgba(229, 193, 88, 0.8)',
-          zIndex: 99,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          transition: 'transform 0.2s'
-        }}
-        onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-      >
-        🛰️ Open Admin Cockpit
-      </button>
-
       {/* --- ALL MODALS --- */}
-      <AdminCockpitModal 
-        isOpen={adminCockpitOpen}
-        onClose={() => setAdminCockpitOpen(false)}
-      />
-
       <WeatherModal 
         isOpen={weatherOpen}
         onClose={() => setWeatherOpen(false)}
@@ -123,7 +88,7 @@ export default function App() {
       <CommunityModal 
         isOpen={communityOpen}
         onClose={() => setCommunityOpen(false)}
-        isAdmin={true} // Allow post deletions for showcase purposes
+        isAdmin={false} // Access is purely public now
       />
 
       <FarmKartModal 
