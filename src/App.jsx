@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+
 import Header from './components/Header';
 import DashboardGrid from './components/DashboardGrid';
 import MarketSidebar from './components/MarketSidebar';
@@ -13,6 +14,7 @@ import CommunityModal from './components/Modals/CommunityModal';
 import FarmKartModal from './components/Modals/FarmKartModal';
 import NotificationsModal from './components/Modals/NotificationsModal';
 import AboutModal from './components/Modals/AboutModal';
+import ProfileModal from './components/Modals/ProfileModal'; // <-- The new profile modal
 
 import './App.css';
 
@@ -29,6 +31,7 @@ export default function App() {
   const [farmKartOpen, setFarmKartOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false); // <-- State for the profile modal
 
   // Notification count
   const [unreadNotifications, setUnreadNotifications] = useState(2); // Mock alerts unread count
@@ -48,6 +51,7 @@ export default function App() {
         unreadNotificationsCount={unreadNotifications}
         onOpenNotifications={() => setNotificationsOpen(true)}
         onOpenAbout={() => setAboutOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)} // <-- Passes the click handler to the avatar in Header
         language={language}
         onLanguageChange={setLanguage}
       />
@@ -106,6 +110,13 @@ export default function App() {
       <AboutModal 
         isOpen={aboutOpen}
         onClose={() => setAboutOpen(false)}
+      />
+
+      {/* --- NEW PROFILE MODAL --- */}
+      <ProfileModal 
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        language={language}
       />
     </div>
   );
