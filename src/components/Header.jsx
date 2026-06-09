@@ -1,55 +1,63 @@
 import React from 'react';
 
-export default function Header({ unreadNotificationsCount, onOpenNotifications, onOpenAbout, language, onLanguageChange }) {
+export default function Header({ 
+  unreadNotificationsCount, 
+  onOpenNotifications, 
+  onOpenAbout, 
+  onOpenProfile, // <-- We trigger the modal with this
+  language, 
+  onLanguageChange 
+}) {
   return (
-    <header className="header" style={{ flexWrap: 'wrap', gap: '15px' }}>
-      <div className="logo-container">
-        <img src="/logo.png" alt="Crop GPT Logo" />
-        <h1>Crop GPT</h1>
+    <header style={styles.header}>
+      {/* TOP LEFT: Clickable Avatar + Title */}
+      <div style={styles.leftSection}>
+        <div 
+          style={styles.avatarContainer} 
+          onClick={onOpenProfile} 
+          title="Open Farmer Profile"
+        >
+          <i className="fas fa-user-circle" style={styles.avatarIcon}></i>
+        </div>
+        <h1 style={styles.title}>Crop GPT Dashboard</h1>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        {/* Global Language Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <i className="fas fa-language" style={{ fontSize: '1.5rem', color: 'var(--primary-neon)' }}></i>
-          <select 
-            value={language} 
-            onChange={(e) => onLanguageChange(e.target.value)}
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: 'var(--text-primary)', 
-              border: '1px solid var(--border-color)', 
-              borderRadius: '5px',
-              padding: '6px 10px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              outline: 'none'
-            }}
-          >
-            <option value="English">English</option>
-            <option value="Hindi">हिंदी (Hindi)</option>
-            <option value="Odia">ଓଡ଼ିଆ (Odia)</option>
-          </select>
+
+      {/* TOP RIGHT: Controls and Icons */}
+      <div style={styles.rightSection}>
+        <select 
+          value={language} 
+          onChange={(e) => onLanguageChange(e.target.value)}
+          style={styles.select}
+        >
+          <option value="English">English</option>
+          <option value="Hindi">Hindi</option>
+          <option value="Odia">Odia</option>
+        </select>
+
+        <div style={styles.iconContainer} onClick={onOpenNotifications}>
+          <i className="fas fa-bell" style={styles.icon}></i>
+          {unreadNotificationsCount > 0 && (
+            <span style={styles.badge}>{unreadNotificationsCount}</span>
+          )}
         </div>
 
-        <div className="header-icons">
-          <i 
-            id="notificationsBtn" 
-            className="fas fa-bell" 
-            title="Notifications"
-            onClick={onOpenNotifications}
-          >
-            {unreadNotificationsCount > 0 && (
-              <span className="notification-badge">{unreadNotificationsCount}</span>
-            )}
-          </i>
-          <i 
-            id="aboutBtn" 
-            className="fas fa-info-circle" 
-            title="About Us"
-            onClick={onOpenAbout}
-          ></i>
+        <div style={styles.iconContainer} onClick={onOpenAbout}>
+          <i className="fas fa-info-circle" style={styles.icon}></i>
         </div>
       </div>
     </header>
   );
 }
+
+const styles = {
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: '#2E7D32', color: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+  leftSection: { display: 'flex', alignItems: 'center', gap: '15px' },
+  avatarContainer: { cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'transform 0.2s' },
+  avatarIcon: { fontSize: '36px', color: '#E8F5E9' },
+  title: { margin: 0, fontSize: '22px', fontWeight: 'bold' },
+  rightSection: { display: 'flex', alignItems: 'center', gap: '20px' },
+  select: { padding: '6px 10px', borderRadius: '4px', border: 'none', outline: 'none', cursor: 'pointer' },
+  iconContainer: { position: 'relative', cursor: 'pointer', fontSize: '20px' },
+  icon: { color: 'white' },
+  badge: { position: 'absolute', top: '-8px', right: '-10px', backgroundColor: '#d32f2f', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '12px', fontWeight: 'bold' }
+};
