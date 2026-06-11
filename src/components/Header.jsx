@@ -10,8 +10,11 @@ export default function Header({
 }) {
   return (
     <header style={styles.header}>
-      {/* TOP LEFT: Just the Title Now */}
+      {/* TOP LEFT: Custom PNG Logo and Title */}
       <div style={styles.leftSection}>
+        
+        <img src="/logo.png" alt="Crop GPT Logo" style={styles.logoImage} /> 
+
         <h1 style={styles.title}>Crop GPT Dashboard</h1>
       </div>
 
@@ -58,20 +61,25 @@ const styles = {
     justifyContent: 'space-between', 
     alignItems: 'center', 
     padding: '12px 20px', 
-    // CHANGED: Using a refined, elegant metallic gold to match your icons
     backgroundColor: '#D4AF37', 
-    color: '#1a1a1a', // Keeping text dark for readability
+    color: '#1a1a1a', 
     boxShadow: '0 2px 4px rgba(0,0,0,0.2)' 
   },
-  leftSection: { display: 'flex', alignItems: 'center', gap: '15px' },
-  title: { margin: 0, fontSize: '22px', fontWeight: 'bold' },
+  leftSection: { display: 'flex', alignItems: 'center', gap: '12px' },
   
+  // CHANGED: Removed circle logic, increased height, width auto-adjusts
+  logoImage: { 
+    height: '60px', 
+    width: 'auto', 
+    objectFit: 'contain' 
+  }, 
+  
+  title: { margin: 0, fontSize: '22px', fontWeight: 'bold' },
   rightSection: { display: 'flex', alignItems: 'center', gap: '20px' },
   select: { padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', outline: 'none', cursor: 'pointer', backgroundColor: '#fff', color: '#333', fontWeight: 'bold' },
   iconContainer: { position: 'relative', cursor: 'pointer', fontSize: '20px' },
   icon: { color: '#1a1a1a' },
   badge: { position: 'absolute', top: '-8px', right: '-10px', backgroundColor: '#d32f2f', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '12px', fontWeight: 'bold' },
-  
   avatarContainer: { cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'transform 0.2s', marginLeft: '10px' },
   avatarIcon: { fontSize: '42px', color: '#1a1a1a' }, 
 };
