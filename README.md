@@ -1,3 +1,4 @@
+**Crop GPT** is a centralized, modular web platform designed to support Odisha’s agricultural ecosystem by bringing essential farming services into a single digital workspace. It features a responsive dashboard with an AI chat assistant, district-wise data filtering, climate monitoring, crop recommendations, a farmer community forum, a marketplace, government scheme information (KALIA, PM-KISAN, Balaram Yojana), and a financial ledger with profit tracking and EMI calculations. By transforming complex agricultural and financial data into actionable insights, the platform provides a scalable foundation for future IoT and real-time market price integrations.
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
