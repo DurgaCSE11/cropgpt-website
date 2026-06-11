@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function ProfileModal({ isOpen, onClose, language }) {
-  // Mock data for the farmer's profile
-  const [profile, setProfile] = useState({
-    fullName: 'Ramesh Farmer',
-    district: 'Sambalpur',
-    primaryCrops: 'Rice (Paddy), Maize',
-    phone: '+91 98765 43210',
+  // 1. Initialize state by checking Local Storage first
+  const [profile, setProfile] = useState(() => {
+    const savedProfile = localStorage.getItem('cropGptProfile');
+    if (savedProfile) {
+      return JSON.parse(savedProfile);
+    }
+    // If nothing is saved, use the defaults
+    return {
+      fullName: 'Ramesh Farmer',
+      district: 'Sambalpur',
+      primaryCrops: 'Rice (Paddy), Maize',
+      phone: '+91 98765 43210',
+    };
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -18,15 +25,18 @@ export default function ProfileModal({ isOpen, onClose, language }) {
   };
 
   const handleSave = () => {
+    // 2. Save the updated profile to the browser's Local Storage
+    localStorage.setItem('cropGptProfile', JSON.stringify(profile));
     setIsEditing(false);
-    alert('Profile saved successfully!');
+    alert('Profile saved locally! Try refreshing the page.');
   };
 
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <div style={styles.header}>
-          <h2>Farmer Profile</h2>
+          {/* UPDATED TITLE STYLING */}
+          <h2 style={styles.modalTitle}>Farmer Profile</h2>
           <button onClick={onClose} style={styles.closeBtn}>&times;</button>
         </div>
 
@@ -91,6 +101,10 @@ const styles = {
   overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 },
   modal: { backgroundColor: '#fff', borderRadius: '8px', width: '90%', maxWidth: '400px', padding: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '15px' },
+  
+  // NEW STYLE FOR THE TITLE
+  modalTitle: { margin: 0, color: '#2E7D32', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', fontSize: '24px', fontWeight: 'bold' },
+  
   closeBtn: { background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#333' },
   body: { display: 'flex', flexDirection: 'column', gap: '10px' },
   label: { fontWeight: 'bold', fontSize: '14px', color: '#333' },
