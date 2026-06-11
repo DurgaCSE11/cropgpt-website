@@ -4,25 +4,18 @@ export default function Header({
   unreadNotificationsCount, 
   onOpenNotifications, 
   onOpenAbout, 
-  onOpenProfile, // <-- We trigger the modal with this
+  onOpenProfile, 
   language, 
   onLanguageChange 
 }) {
   return (
     <header style={styles.header}>
-      {/* TOP LEFT: Clickable Avatar + Title */}
+      {/* TOP LEFT: Just the Title Now */}
       <div style={styles.leftSection}>
-        <div 
-          style={styles.avatarContainer} 
-          onClick={onOpenProfile} 
-          title="Open Farmer Profile"
-        >
-          <i className="fas fa-user-circle" style={styles.avatarIcon}></i>
-        </div>
         <h1 style={styles.title}>Crop GPT Dashboard</h1>
       </div>
 
-      {/* TOP RIGHT: Controls and Icons */}
+      {/* TOP RIGHT: Controls, Icons, and Avatar */}
       <div style={styles.rightSection}>
         <select 
           value={language} 
@@ -44,6 +37,16 @@ export default function Header({
         <div style={styles.iconContainer} onClick={onOpenAbout}>
           <i className="fas fa-info-circle" style={styles.icon}></i>
         </div>
+
+        {/* CLICKABLE AVATAR MOVED HERE */}
+        <div 
+          style={styles.avatarContainer} 
+          onClick={onOpenProfile} 
+          title="Open Farmer Profile"
+        >
+          <i className="fas fa-user-circle" style={styles.avatarIcon}></i>
+        </div>
+        
       </div>
     </header>
   );
@@ -52,12 +55,15 @@ export default function Header({
 const styles = {
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: '#2E7D32', color: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
   leftSection: { display: 'flex', alignItems: 'center', gap: '15px' },
-  avatarContainer: { cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'transform 0.2s' },
-  avatarIcon: { fontSize: '36px', color: '#E8F5E9' },
   title: { margin: 0, fontSize: '22px', fontWeight: 'bold' },
+  
   rightSection: { display: 'flex', alignItems: 'center', gap: '20px' },
   select: { padding: '6px 10px', borderRadius: '4px', border: 'none', outline: 'none', cursor: 'pointer' },
   iconContainer: { position: 'relative', cursor: 'pointer', fontSize: '20px' },
   icon: { color: 'white' },
-  badge: { position: 'absolute', top: '-8px', right: '-10px', backgroundColor: '#d32f2f', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '12px', fontWeight: 'bold' }
+  badge: { position: 'absolute', top: '-8px', right: '-10px', backgroundColor: '#d32f2f', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '12px', fontWeight: 'bold' },
+  
+  // Avatar Styles
+  avatarContainer: { cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'transform 0.2s', marginLeft: '10px' },
+  avatarIcon: { fontSize: '42px', color: '#E8F5E9' }, // <-- Change 42px to whatever size you prefer!
 };
